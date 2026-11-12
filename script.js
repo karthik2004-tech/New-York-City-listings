@@ -4,7 +4,7 @@
    ========================================================================== */
 
 // Where the FastAPI server lives. Override without editing: index.html?api=http://host:port
-const API_BASE = (new URLSearchParams(location.search).get("api") || "http://127.0.0.1:8000").replace(/\/$/, "");
+const API_BASE = (new URLSearchParams(location.search).get("api") || "https://new-york-city-listings-2.onrender.com").replace(/\/$/, "");
 
 // Class order of the trained model (scikit-learn sorts labels alphabetically).
 // predict_proba columns follow this exact order.
