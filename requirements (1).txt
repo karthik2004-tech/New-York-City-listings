@@ -1,0 +1,11 @@
+# Backend for the room type predictor (tested together)
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pydantic>=2.5
+
+# Must match the version the model was trained with (1.6.1),
+# otherwise Model_pipeline.pkl may fail to load.
+scikit-learn==1.6.1
+numpy==2.2.6
+pandas==2.2.3
+joblib>=1.4

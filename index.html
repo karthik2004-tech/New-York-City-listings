@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Room type predictor · NYC listings</title>
+  <meta name="description" content="Predict whether a New York City Airbnb listing is an entire home, a private room or a shared room." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="stripes" aria-hidden="true"><i></i><i></i><i></i></div>
+
+  <header class="masthead">
+    <div class="masthead__text">
+      <p class="masthead__kicker">New York City listings</p>
+      <h1>What kind of place is this listing?</h1>
+      <p class="masthead__lede">
+        Describe a listing and the model predicts whether it rents as an entire home,
+        a private room or a shared room.
+      </p>
+    </div>
+
+    <ul class="legend" aria-label="Room types the model can predict">
+      <li class="legend__item" data-room="home" style="--i:0">
+        <span class="bullet bullet--sm"><svg viewBox="0 0 24 24"><use href="#i-home"/></svg></span>
+        <span>Entire home</span>
+      </li>
+      <li class="legend__item" data-room="private" style="--i:1">
+        <span class="bullet bullet--sm"><svg viewBox="0 0 24 24"><use href="#i-private"/></svg></span>
+        <span>Private room</span>
+      </li>
+      <li class="legend__item" data-room="shared" style="--i:2">
+        <span class="bullet bullet--sm"><svg viewBox="0 0 24 24"><use href="#i-shared"/></svg></span>
+        <span>Shared room</span>
+      </li>
+    </ul>
+  </header>
+
+  <main class="layout">
+    <!-- ================= FORM ================= -->
+    <form id="form" class="form" novalidate>
+      <div class="presets">
+        <span class="presets__label">Try an example</span>
+        <button type="button" class="chip" data-preset="midtown">Midtown, $250</button>
+        <button type="button" class="chip" data-preset="bedstuy">Bed-Stuy, $60</button>
+        <button type="button" class="chip" data-preset="jamaica">Jamaica, $35</button>
+      </div>
+
+      <!-- Location -->
+      <section class="step" aria-labelledby="s-loc">
+        <h2 id="s-loc">Where is it?</h2>
+
+        <fieldset class="field">
+          <legend>Borough</legend>
+          <div class="boroughs" id="boroughs" role="radiogroup"></div>
+        </fieldset>
+
+        <div class="field">
+          <label for="neighbourhood">Neighbourhood</label>
+          <div class="select">
+            <select id="neighbourhood" name="neighbourhood" required></select>
+          </div>
+        </div>
+
+        <div class="field">
+          <span class="field__label" id="map-label">Pin the exact spot</span>
+          <div class="map" id="map" role="application" aria-labelledby="map-label"></div>
+          <p class="hint" id="map-hint">Click the map to move the pin, or type coordinates below.</p>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label for="latitude">Latitude</label>
+            <input id="latitude" name="latitude" type="number" step="any" inputmode="decimal" required />
+            <p class="error" data-for="latitude"></p>
+          </div>
+          <div class="field">
+            <label for="longitude">Longitude</label>
+            <input id="longitude" name="longitude" type="number" step="any" inputmode="decimal" required />
+            <p class="error" data-for="longitude"></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Price & stay -->
+      <section class="step" aria-labelledby="s-price">
+        <h2 id="s-price">Price and stay</h2>
+
+        <div class="row">
+          <div class="field">
+            <label for="price">Price per night</label>
+            <div class="affix">
+              <span class="affix__pre">$</span>
+              <input id="price" name="price" type="number" min="1" step="any" inputmode="decimal" required />
+            </div>
+            <p class="error" data-for="price"></p>
+          </div>
+          <div class="field">
+            <label for="minimum_nights">Minimum nights</label>
+            <input id="minimum_nights" name="minimum_nights" type="number" min="1" max="365" step="1" inputmode="numeric" required />
+            <p class="error" data-for="minimum_nights"></p>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="field__head">
+            <label for="availability_365">Days available per year</label>
+            <output id="availability_out" for="availability_365">365</output>
+          </div>
+          <input id="availability_365" name="availability_365" type="range" min="0" max="365" step="1" value="365" />
+        </div>
+      </section>
+
+      <!-- Reviews -->
+      <section class="step" aria-labelledby="s-rev">
+        <h2 id="s-rev">Reviews</h2>
+        <div class="row">
+          <div class="field">
+            <label for="number_of_reviews">Total reviews</label>
+            <input id="number_of_reviews" name="number_of_reviews" type="number" min="0" step="1" inputmode="numeric" required />
+            <p class="error" data-for="number_of_reviews"></p>
+          </div>
+          <div class="field">
+            <label for="reviews_per_month">Reviews per month</label>
+            <input id="reviews_per_month" name="reviews_per_month" type="number" min="0" step="any" inputmode="decimal" required />
+            <p class="error" data-for="reviews_per_month"></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Host -->
+      <section class="step step--last" aria-labelledby="s-host">
+        <h2 id="s-host">The host</h2>
+        <div class="field field--narrow">
+          <label for="calculated_host_listings_count">Listings by this host</label>
+          <input id="calculated_host_listings_count" name="calculated_host_listings_count" type="number" min="0" step="1" inputmode="numeric" required />
+          <p class="error" data-for="calculated_host_listings_count"></p>
+        </div>
+      </section>
+
+      <div class="actions">
+        <button type="submit" class="btn" id="submit">
+          <span class="btn__label">Predict room type</span>
+          <span class="btn__spinner" aria-hidden="true"></span>
+        </button>
+        <button type="button" class="btn btn--ghost" id="reset">Reset</button>
+      </div>
+    </form>
+
+    <!-- ================= RESULT ================= -->
+    <aside class="result" id="result" aria-live="polite" data-state="empty">
+      <div class="result__panel">
+        <div class="status" id="status" data-state="checking">
+          <span class="status__dot"></span>
+          <span class="status__text" id="status-text">Checking API…</span>
+          <button type="button" class="status__retry" id="retry" hidden>Retry</button>
+        </div>
+
+        <!-- empty -->
+        <div class="result__empty">
+          <div class="ghosts" aria-hidden="true">
+            <span class="bullet" data-room="home"><svg viewBox="0 0 24 24"><use href="#i-home"/></svg></span>
+            <span class="bullet" data-room="private"><svg viewBox="0 0 24 24"><use href="#i-private"/></svg></span>
+            <span class="bullet" data-room="shared"><svg viewBox="0 0 24 24"><use href="#i-shared"/></svg></span>
+          </div>
+          <h2>Your prediction shows up here</h2>
+          <p>Adjust the details, then choose Predict room type.</p>
+        </div>
+
+        <!-- loading -->
+        <div class="result__loading">
+          <div class="ghosts ghosts--pulse" aria-hidden="true">
+            <span class="bullet" data-room="home"></span>
+            <span class="bullet" data-room="private"></span>
+            <span class="bullet" data-room="shared"></span>
+          </div>
+          <p>Asking the model…</p>
+        </div>
+
+        <!-- error -->
+        <div class="result__error" role="alert">
+          <h2 id="error-title">Couldn't get a prediction</h2>
+          <p id="error-body"></p>
+        </div>
+
+        <!-- success -->
+        <div class="result__done" id="done" data-room="home">
+          <div class="verdict">
+            <span class="bullet bullet--lg" id="verdict-bullet">
+              <svg viewBox="0 0 24 24" id="verdict-icon"><use href="#i-home"/></svg>
+            </span>
+            <div>
+              <p class="verdict__pre">This looks like</p>
+              <h2 id="verdict-name">Entire home</h2>
+              <p class="verdict__note" id="verdict-note"></p>
+            </div>
+          </div>
+
+          <ol class="line" id="line">
+            <li class="stop" data-room="home">
+              <span class="stop__name">Entire home</span>
+              <span class="stop__track"><span class="stop__fill"></span></span>
+              <span class="stop__pct">0%</span>
+            </li>
+            <li class="stop" data-room="private">
+              <span class="stop__name">Private room</span>
+              <span class="stop__track"><span class="stop__fill"></span></span>
+              <span class="stop__pct">0%</span>
+            </li>
+            <li class="stop" data-room="shared">
+              <span class="stop__name">Shared room</span>
+              <span class="stop__track"><span class="stop__fill"></span></span>
+              <span class="stop__pct">0%</span>
+            </li>
+          </ol>
+
+          <details class="raw">
+            <summary>API response</summary>
+            <pre id="raw"></pre>
+          </details>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="foot">
+    <p>Model: random forest trained on New York City listings. Predictions are estimates, not facts about any real listing.</p>
+  </footer>
+
+  <!-- SVG icon sprite -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <g id="i-home" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3.5 11 12 4l8.5 7"/><path d="M5.5 10v9.5h13V10"/><path d="M10 19.5v-5h4v5"/>
+      </g>
+      <g id="i-private" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="6" y="3.5" width="12" height="17" rx="1.2"/><circle cx="14.8" cy="12" r=".9" fill="currentColor"/>
+      </g>
+      <g id="i-shared" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4.5 20.5v-17M19.5 20.5v-17"/><path d="M4.5 9h15M4.5 16h15"/><path d="M7.5 9V7h5v2M12.5 16v-2h4v2"/>
+      </g>
+    </defs>
+  </svg>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
