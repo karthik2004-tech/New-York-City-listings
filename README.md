@@ -2,7 +2,7 @@
 
 Predicts whether a New York City Airbnb listing is an **entire home**, a **private room** or a **shared room**, based on its details.
 
-**Live demo:** [your-frontend-link](https://your-frontend-link) *(free hosting, so the first load can take about 50 seconds)*
+**Live demo:** [your-frontend-link](https://new-york-city-listings-3.onrender.com) *(free hosting, so the first load can take about 50 seconds)*
 
 ## How it works
 
